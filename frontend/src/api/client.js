@@ -1,0 +1,83 @@
+// This module is the single place that knows how the React app talks to the
+// Python API. Components call these small functions instead of building HTTP
+// requests themselves.
+
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+async function request(path, { method = 'GET', token, body, signal } = {}) {
+  const headers = {};
+
+  if (body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  let response;
+  try {
+    response = await fetch(path, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal,
+    });
+  } catch (error) {
+    if (error.name === 'AbortError') throw error;
+    throw new ApiError(
+      'Could not reach the API. Make sure the Python server is running.',
+      0,
+    );
+  }
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new ApiError(data.error || `Request failed (${response.status}).`, response.status);
+  }
+
+  return data;
+}
+
+export function register(credentials) {
+  return request('/auth/register', { method: 'POST', body: credentials });
+}
+
+export function login(credentials) {
+  return request('/auth/login', { method: 'POST', body: credentials });
+}
+
+export function listTasks(token, signal) {
+  return request('/tasks', { token, signal });
+}
+
+export function createTask(title, token) {
+  return request('/tasks', {
+    method: 'POST',
+    token,
+    body: { title },
+  });
+}
+
+export function renameTask(id, title, token) {
+  return request(`/tasks/${id}`, {
+    method: 'PATCH',
+    token,
+    body: { title },
+  });
+}
+
+export function completeTask(id, token) {
+  return request(`/tasks/${id}/complete`, { method: 'POST', token });
+}
+
+export function deleteTask(id, token) {
+  return request(`/tasks/${id}`, { method: 'DELETE', token });
+}
