@@ -2,16 +2,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "DDD four-layer demo",
-      "type": "debugpy",
-      "request": "launch",
-      "python": "${workspaceFolder}/DDD/.venv/bin/python",
-      "program": "${workspaceFolder}/DDD_DEBUG_DEMO/presentation.py",
-      "cwd": "${workspaceFolder}/DDD_DEBUG_DEMO",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
       "name": "DDD API",
       "type": "debugpy",
       "request": "launch",
