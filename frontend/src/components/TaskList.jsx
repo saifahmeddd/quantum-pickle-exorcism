@@ -12,6 +12,7 @@ import TaskItem from './TaskItem.jsx';
  * with the same task after items are added, removed, or reordered.
  */
 export default function TaskList({ tasks, busyTaskId, onComplete, onRename, onDelete }) {
+  // An early return makes the empty collection a separate, simple UI state.
   if (tasks.length === 0) {
     return (
       <div className="empty-state">
@@ -23,6 +24,8 @@ export default function TaskList({ tasks, busyTaskId, onComplete, onRename, onDe
 
   return (
     <ul className="task-list">
+      {/* map converts each data object into one TaskItem component. */}
+      {/* The database ID is a stable key; busyTaskId disables only one row. */}
       {tasks.map(task => (
         <TaskItem
           key={task.id}

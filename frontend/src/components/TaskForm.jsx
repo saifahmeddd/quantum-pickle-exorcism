@@ -18,10 +18,13 @@ export default function TaskForm({ isSubmitting, onCreate }) {
     // Keep the page from reloading when this HTML form is submitted.
     event.preventDefault();
     const cleanTitle = title.trim();
+
+    // Do not send empty or whitespace-only titles to App.
     if (!cleanTitle) return;
 
     // The callback moves the event upward to App, which owns the task list.
     const created = await onCreate(cleanTitle);
+    // Keep the user's input after failure, but clear it after a successful POST.
     if (created) setTitle('');
   }
 
@@ -36,6 +39,7 @@ export default function TaskForm({ isSubmitting, onCreate }) {
         maxLength={120}
         disabled={isSubmitting}
       />
+      {/* Button state is calculated from props and local input state. */}
       <button className="primary" disabled={isSubmitting || !title.trim()}>
         {isSubmitting ? 'Adding…' : 'Add task'}
       </button>

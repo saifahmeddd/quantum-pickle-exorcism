@@ -6,6 +6,7 @@
   text-rendering: optimizeLegibility;
 }
 
+/* Shared browser reset and base element styles */
 * {
   box-sizing: border-box;
 }
@@ -60,6 +61,7 @@ p {
   margin-top: 0;
 }
 
+/* Main page layouts and card surfaces */
 .auth-layout,
 .app-shell {
   width: min(100% - 2rem, 880px);
@@ -107,6 +109,7 @@ p {
   margin-top: 1.5rem;
 }
 
+/* Buttons and reusable interaction styles */
 .primary,
 .secondary,
 .small,
@@ -144,6 +147,7 @@ p {
   padding-block: 3rem;
 }
 
+/* Authenticated task screen */
 .app-header {
   display: flex;
   align-items: flex-start;
@@ -187,6 +191,7 @@ p {
   border: 1px solid #f4caca;
 }
 
+/* Task collection and individual rows */
 .loading,
 .empty-state {
   padding: 3rem 1rem;
@@ -297,6 +302,7 @@ p {
   border: 0;
 }
 
+/* Stack controls vertically on narrow screens */
 @media (max-width: 650px) {
   .app-shell {
     padding-block: 1.5rem;

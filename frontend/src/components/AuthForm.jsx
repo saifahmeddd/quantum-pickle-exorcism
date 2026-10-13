@@ -18,11 +18,15 @@ export default function AuthForm({ mode, isSubmitting, error, onSubmit, onModeCh
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  // This is a derived value calculated from props, so it does not need state.
   const isRegistering = mode === 'register';
 
   async function handleSubmit(event) {
     // Prevent the browser's default form navigation so React stays in control.
     event.preventDefault();
+
+    // Props move the user action upward. App performs the API request because
+    // App owns the session that will be created by a successful response.
     await onSubmit({ email: email.trim(), password });
   }
 
@@ -62,6 +66,7 @@ export default function AuthForm({ mode, isSubmitting, error, onSubmit, onModeCh
           />
         </label>
 
+        {/* Render the error element only when App supplies an error message. */}
         {error && <p className="message error" role="alert">{error}</p>}
 
         <button className="primary" disabled={isSubmitting}>

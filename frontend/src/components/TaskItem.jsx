@@ -14,11 +14,16 @@ import { useState } from 'react';
 export default function TaskItem({ task, isBusy, onComplete, onRename, onDelete }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState(task.title);
+
+  // completed_at is null for pending tasks and a timestamp for completed tasks.
+  // Boolean converts those two shapes into a simple true/false display value.
   const isCompleted = Boolean(task.completed_at);
 
   async function handleRename(event) {
     event.preventDefault();
     const cleanTitle = draftTitle.trim();
+
+    // Close without an API call when the draft is empty or unchanged.
     if (!cleanTitle || cleanTitle === task.title) {
       setDraftTitle(task.title);
       setIsEditing(false);
@@ -41,6 +46,7 @@ export default function TaskItem({ task, isBusy, onComplete, onRename, onDelete 
       <div className="task-content">
         <span className="status-dot" aria-hidden="true" />
 
+        {/* Local isEditing state chooses the edit form or read-only task text. */}
         {isEditing ? (
           <form className="edit-form" onSubmit={handleRename}>
             <label className="sr-only" htmlFor={`edit-${task.id}`}>Edit title</label>
@@ -69,6 +75,7 @@ export default function TaskItem({ task, isBusy, onComplete, onRename, onDelete 
 
       {!isEditing && (
         <div className="task-actions">
+          {/* Completed tasks no longer need a Complete button. */}
           {!isCompleted && (
             <button className="small" disabled={isBusy} onClick={() => onComplete(task.id)}>
               Complete
