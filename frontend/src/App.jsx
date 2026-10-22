@@ -9,9 +9,11 @@ import {
   register,
   renameTask,
 } from './api/client.js';
+import AppHeader from './components/AppHeader.jsx';
 import AuthForm from './components/AuthForm.jsx';
 import TaskForm from './components/TaskForm.jsx';
 import TaskList from './components/TaskList.jsx';
+import { useSession } from './context/SessionContext.jsx';
 
 // The backend already returns tasks in domain order, but local CRUD updates can
 // change that order. This helper copies the array before sorting so React state
@@ -34,12 +36,13 @@ function errorMessage(error) {
 }
 
 /**
- * App is the root component and the shared-state owner.
+ * App is the root visible component and the main task-state owner.
  *
  * It keeps data that several child components need:
- * - the Firebase session returned after registration or login;
  * - the task collection returned by the Python API;
  * - loading, busy, and error states used to explain what the UI is doing.
+ * The SessionProvider above App owns authentication session state so any
+ * descendant can read it through context without prop drilling.
  *
  * App passes data down through props and passes callback functions down for
  * user actions. When a callback receives a successful API response, App updates
@@ -49,12 +52,12 @@ function errorMessage(error) {
  * task interface after authentication succeeds.
  */
 export default function App() {
+  // useSession is a custom Hook around useContext. SessionProvider in main.jsx
+  // owns this value; App reads it and updates it after login or logout.
+  const { session, setSession } = useSession();
+
   // authMode controls which version of AuthForm is displayed.
   const [authMode, setAuthMode] = useState('login');
-
-  // session is null before login. After login it contains the Firebase session
-  // returned by our Python API, including the ID token used for task requests.
-  const [session, setSession] = useState(null);
 
   // tasks is the shared collection displayed by TaskList and counted by App.
   const [tasks, setTasks] = useState([]);
@@ -240,16 +243,8 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <header className="app-header">
-        <div>
-          <div className="eyebrow">DDD + React</div>
-          <h1>My tasks</h1>
-          <p className="muted">
-            Signed in as {session.email} · {pendingCount} pending
-          </p>
-        </div>
-        <button className="secondary" onClick={handleLogout}>Log out</button>
-      </header>
+      {/* AppHeader reads session.email from context instead of a session prop. */}
+      <AppHeader pendingCount={pendingCount} onLogout={handleLogout} />
 
       <section className="task-panel" aria-labelledby="task-panel-title">
         <h2 id="task-panel-title" className="sr-only">Task manager</h2>
