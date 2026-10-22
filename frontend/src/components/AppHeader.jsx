@@ -1,12 +1,12 @@
-import { useSession } from '../context/SessionContext.jsx';
+import { useTheme } from '../context/ThemeContext.jsx';
 
 /**
- * AppHeader reads the authenticated session directly from context. App only
- * passes header-specific values and behavior, so the session does not need to
- * travel through props.
+ * AppHeader reads the shared theme through context. Clicking the theme button
+ * updates ThemeProvider, so every component using that context receives the
+ * new value without theme props being passed through the component tree.
  */
-export default function AppHeader({ pendingCount, onLogout }) {
-  const { session } = useSession();
+export default function AppHeader({ email, pendingCount, onLogout }) {
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="app-header">
@@ -14,10 +14,15 @@ export default function AppHeader({ pendingCount, onLogout }) {
         <div className="eyebrow">DDD + React</div>
         <h1>My tasks</h1>
         <p className="muted">
-          Signed in as {session.email} · {pendingCount} pending
+          Signed in as {email} · {pendingCount} pending
         </p>
       </div>
-      <button className="secondary" onClick={onLogout}>Log out</button>
+      <div className="header-actions">
+        <button className="secondary" onClick={toggleTheme}>
+          {theme === 'light' ? 'Dark mode' : 'Light mode'}
+        </button>
+        <button className="secondary" onClick={onLogout}>Log out</button>
+      </div>
     </header>
   );
 }

@@ -160,6 +160,12 @@ p {
   margin-bottom: 0.35rem;
 }
 
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .task-panel {
   padding: 1.4rem;
 }
@@ -302,6 +308,47 @@ p {
   border: 0;
 }
 
+/* ThemeContext places data-theme on the root HTML element. These overrides
+   demonstrate one shared context value changing styles across the whole page. */
+:root[data-theme="dark"] {
+  color: #eef2ff;
+  background: #111827;
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] input {
+  color: #eef2ff;
+  background: #1f2937;
+  border-color: #475569;
+}
+
+:root[data-theme="dark"] label {
+  color: #dbe4f3;
+}
+
+:root[data-theme="dark"] .auth-card,
+:root[data-theme="dark"] .task-panel {
+  background: #182235;
+  border-color: #334155;
+}
+
+:root[data-theme="dark"] .muted,
+:root[data-theme="dark"] .task-date,
+:root[data-theme="dark"] .empty-state p {
+  color: #aebbd0;
+}
+
+:root[data-theme="dark"] .secondary,
+:root[data-theme="dark"] .small.secondary {
+  color: #e2e8f0;
+  background: #334155;
+}
+
+:root[data-theme="dark"] .task-form,
+:root[data-theme="dark"] .task-item {
+  border-color: #334155;
+}
+
 /* Stack controls vertically on narrow screens */
 @media (max-width: 650px) {
   .app-shell {
@@ -321,6 +368,10 @@ p {
   }
 
   .task-actions {
+    justify-content: flex-start;
+  }
+
+  .header-actions {
     justify-content: flex-start;
   }
 }
