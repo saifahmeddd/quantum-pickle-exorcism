@@ -1,5 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import {
+  ApiError,
+  completeTask as completeTaskRequest,
+  deleteTask as deleteTaskRequest,
+  listTasks,
+  renameTask as renameTaskRequest,
+} from './api/client.js';
 import {
   authenticate,
   loggedOut,
@@ -10,90 +17,145 @@ import {
   selectSession,
 } from './features/auth/authSlice.js';
 import {
-  completeTask,
   createTask,
-  deleteTask,
-  loadTasks,
-  renameTask,
-  selectBusyTaskId,
   selectIsCreating,
-  selectIsLoadingTasks,
-  selectPendingCount,
-  selectTaskError,
-  selectTasks,
-  tasksCleared,
-} from './features/tasks/tasksSlice.js';
+  selectTaskCreationError,
+  taskCreationReset,
+} from './features/tasks/taskCreationSlice.js';
 import AppHeader from './components/AppHeader.jsx';
 import AuthForm from './components/AuthForm.jsx';
 import TaskForm from './components/TaskForm.jsx';
 import TaskList from './components/TaskList.jsx';
 
+// Return a new array with pending tasks first, then order by time and ID.
+function orderTasks(tasks) {
+  return [...tasks].sort((left, right) => {
+    const completionDifference = Number(Boolean(left.completed_at)) - Number(Boolean(right.completed_at));
+    if (completionDifference !== 0) return completionDifference;
+
+    return left.created_at.localeCompare(right.created_at) || left.id.localeCompare(right.id);
+  });
+}
+
+function errorMessage(error) {
+  if (error instanceof ApiError && error.status === 401) {
+    return 'Your session is invalid or expired. Log in again.';
+  }
+
+  return error.message || 'Something went wrong.';
+}
+
 /**
- * App reads shared Redux state and dispatches user actions. Forms still keep
- * unfinished input locally because no other component needs that temporary
- * data. ThemeProvider separately owns the visual theme through Context.
+ * Redux owns authentication and task creation. App keeps the task collection
+ * and the other task requests in ordinary React state so both flows stay easy
+ * to compare. ThemeProvider separately owns the visual theme through Context.
  */
 export default function App() {
-  // useDispatch gives components the store's dispatch function. Dispatch sends
-  // actions or thunks into the Redux flow.
   const dispatch = useDispatch();
 
-  // useSelector runs selectors against current store state and re-renders App
-  // when one of these selected values changes.
+  // Redux selectors read the two flows intentionally managed by Redux.
   const authMode = useSelector(selectAuthMode);
   const session = useSelector(selectSession);
   const isAuthenticating = useSelector(selectIsAuthenticating);
   const authError = useSelector(selectAuthError);
-  const tasks = useSelector(selectTasks);
-  const isLoadingTasks = useSelector(selectIsLoadingTasks);
   const isCreating = useSelector(selectIsCreating);
-  const busyTaskId = useSelector(selectBusyTaskId);
-  const taskError = useSelector(selectTaskError);
-  const pendingCount = useSelector(selectPendingCount);
+  const creationError = useSelector(selectTaskCreationError);
+
+  // The remaining task screen uses the original local React state approach.
+  const [tasks, setTasks] = useState([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [busyTaskId, setBusyTaskId] = useState(null);
+  const [taskError, setTaskError] = useState('');
 
   const idToken = session?.id_token;
 
-  // Load the authenticated user's tasks whenever the ID token changes.
+  // Loading the list is a normal React Effect, not a Redux request.
   useEffect(() => {
     if (!idToken) return undefined;
 
     const controller = new AbortController();
-    dispatch(loadTasks(controller.signal));
+    setIsLoadingTasks(true);
+    setTaskError('');
 
-    // Cancel an outdated request when the token changes or App unmounts.
+    listTasks(idToken, controller.signal)
+      .then(data => setTasks(orderTasks(data.tasks)))
+      .catch(error => {
+        if (error.name !== 'AbortError') setTaskError(errorMessage(error));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingTasks(false);
+      });
+
     return () => controller.abort();
-  }, [dispatch, idToken]);
+  }, [idToken]);
 
   function handleAuthentication(credentials) {
-    // authenticate is a thunk. Middleware runs it, then it dispatches the
-    // started/succeeded/failed actions handled by the auth slice reducers.
+    // Authentication is the first Redux thunk flow.
     return dispatch(authenticate(credentials));
   }
 
   function handleModeChange(mode) {
-    // modeChanged(mode) creates an action; dispatch sends it to the reducer.
     dispatch(modeChanged(mode));
   }
 
   function handleLogout() {
     dispatch(loggedOut());
-    dispatch(tasksCleared());
+    dispatch(taskCreationReset());
+    setTasks([]);
+    setTaskError('');
   }
 
-  function handleCreate(title) {
-    return dispatch(createTask(title));
+  async function handleCreate(title) {
+    // Task creation is the second Redux thunk flow. The thunk returns the task,
+    // then App adds it to the local task collection used by the other requests.
+    const task = await dispatch(createTask(title));
+    if (task === null) return false;
+
+    setTasks(current => orderTasks([...current, task]));
+    return true;
+  }
+
+  // Complete and rename use the original React request/state-update flow.
+  async function updateOneTask(id, request) {
+    setBusyTaskId(id);
+    setTaskError('');
+
+    try {
+      const updatedTask = await request();
+      setTasks(current => orderTasks(
+        current.map(task => task.id === id ? updatedTask : task),
+      ));
+      return true;
+    } catch (error) {
+      setTaskError(errorMessage(error));
+      return false;
+    } finally {
+      setBusyTaskId(null);
+    }
   }
 
   function handleComplete(id) {
-    return dispatch(completeTask(id));
+    return updateOneTask(id, () => completeTaskRequest(id, idToken));
   }
 
   function handleRename(id, title) {
-    return dispatch(renameTask(id, title));
+    return updateOneTask(id, () => renameTaskRequest(id, title, idToken));
   }
 
-  function handleDelete(id) {
-    return dispatch(deleteTask(id));
+  async function handleDelete(id) {
+    setBusyTaskId(id);
+    setTaskError('');
+
+    try {
+      await deleteTaskRequest(id, idToken);
+      setTasks(current => current.filter(task => task.id !== id));
+      return true;
+    } catch (error) {
+      setTaskError(errorMessage(error));
+      return false;
+    } finally {
+      setBusyTaskId(null);
+    }
   }
 
   if (!session) {
@@ -110,6 +172,9 @@ export default function App() {
     );
   }
 
+  // This is calculated from local tasks, so it does not need separate state.
+  const pendingCount = tasks.filter(task => !task.completed_at).length;
+
   return (
     <main className="app-shell">
       <AppHeader
@@ -123,6 +188,7 @@ export default function App() {
 
         <TaskForm isSubmitting={isCreating} onCreate={handleCreate} />
 
+        {creationError && <p className="message error" role="alert">{creationError}</p>}
         {taskError && <p className="message error" role="alert">{taskError}</p>}
 
         {isLoadingTasks ? (

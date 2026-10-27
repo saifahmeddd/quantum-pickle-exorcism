@@ -5,8 +5,8 @@ import { useState } from 'react';
  *
  * The title is local state because it is an unfinished input value used only by
  * this form. The saved task collection remains in App. On submission, TaskForm
- * trims the title and calls onCreate. App sends the POST request and returns
- * true only when the backend successfully creates the task.
+ * trims the title and calls onCreate. App dispatches the Redux create-task
+ * thunk and returns true only when the backend successfully creates the task.
  *
  * isSubmitting disables the form during that request. The title is cleared
  * after success and kept after failure so the user can try again.

@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '../features/auth/authSlice.js';
-import tasksReducer from '../features/tasks/tasksSlice.js';
+import taskCreationReducer from '../features/tasks/taskCreationSlice.js';
 
 /**
  * The store is the single container for shared Redux state.
@@ -15,6 +15,6 @@ import tasksReducer from '../features/tasks/tasksSlice.js';
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    tasks: tasksReducer,
+    taskCreation: taskCreationReducer,
   },
 });
