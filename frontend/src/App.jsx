@@ -1,12 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  ApiError,
-  completeTask as completeTaskRequest,
-  deleteTask as deleteTaskRequest,
-  listTasks,
-  renameTask as renameTaskRequest,
-} from './api/client.js';
 import {
   authenticate,
   loggedOut,
@@ -17,70 +10,58 @@ import {
   selectSession,
 } from './features/auth/authSlice.js';
 import {
+  completeTask,
   createTask,
+  deleteTask,
+  loadTasks,
+  renameTask,
+  selectBusyTaskId,
   selectIsCreating,
-  selectTaskCreationError,
-  taskCreationReset,
-} from './features/tasks/taskCreationSlice.js';
+  selectIsLoadingTasks,
+  selectPendingCount,
+  selectTaskError,
+  selectTasks,
+  tasksCleared,
+} from './features/tasks/tasksSlice.js';
+import { selectTheme } from './features/ui/uiSlice.js';
 import AppHeader from './components/AppHeader.jsx';
 import AuthForm from './components/AuthForm.jsx';
 import TaskForm from './components/TaskForm.jsx';
 import TaskList from './components/TaskList.jsx';
 
-function orderTasks(tasks) {
-  return [...tasks].sort((left, right) => {
-    const completionDifference = Number(Boolean(left.completed_at)) - Number(Boolean(right.completed_at));
-    if (completionDifference !== 0) return completionDifference;
-
-    return left.created_at.localeCompare(right.created_at) || left.id.localeCompare(right.id);
-  });
-}
-
-function errorMessage(error) {
-  if (error instanceof ApiError && error.status === 401) {
-    return 'Your session is invalid or expired. Log in again.';
-  }
-
-  return error.message || 'Something went wrong.';
-}
-
 export default function App() {
   const dispatch = useDispatch();
 
-  // Redux owns authentication and task creation.
   const authMode = useSelector(selectAuthMode);
   const session = useSelector(selectSession);
   const isAuthenticating = useSelector(selectIsAuthenticating);
   const authError = useSelector(selectAuthError);
+  const tasks = useSelector(selectTasks);
+  const isLoadingTasks = useSelector(selectIsLoadingTasks);
   const isCreating = useSelector(selectIsCreating);
-  const creationError = useSelector(selectTaskCreationError);
-
-  // The task list and remaining requests use local React state.
-  const [tasks, setTasks] = useState([]);
-  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
-  const [busyTaskId, setBusyTaskId] = useState(null);
-  const [taskError, setTaskError] = useState('');
+  const busyTaskId = useSelector(selectBusyTaskId);
+  const taskError = useSelector(selectTaskError);
+  const pendingCount = useSelector(selectPendingCount);
+  const theme = useSelector(selectTheme);
 
   const idToken = session?.id_token;
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+
+    return () => {
+      delete document.documentElement.dataset.theme;
+    };
+  }, [theme]);
 
   useEffect(() => {
     if (!idToken) return undefined;
 
     const controller = new AbortController();
-    setIsLoadingTasks(true);
-    setTaskError('');
-
-    listTasks(idToken, controller.signal)
-      .then(data => setTasks(orderTasks(data.tasks)))
-      .catch(error => {
-        if (error.name !== 'AbortError') setTaskError(errorMessage(error));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoadingTasks(false);
-      });
+    dispatch(loadTasks(controller.signal));
 
     return () => controller.abort();
-  }, [idToken]);
+  }, [dispatch, idToken]);
 
   function handleAuthentication(credentials) {
     return dispatch(authenticate(credentials));
@@ -92,59 +73,23 @@ export default function App() {
 
   function handleLogout() {
     dispatch(loggedOut());
-    dispatch(taskCreationReset());
-    setTasks([]);
-    setTaskError('');
+    dispatch(tasksCleared());
   }
 
-  async function handleCreate(title) {
-    const task = await dispatch(createTask(title));
-    if (task === null) return false;
-
-    setTasks(current => orderTasks([...current, task]));
-    return true;
-  }
-
-  async function updateOneTask(id, request) {
-    setBusyTaskId(id);
-    setTaskError('');
-
-    try {
-      const updatedTask = await request();
-      setTasks(current => orderTasks(
-        current.map(task => task.id === id ? updatedTask : task),
-      ));
-      return true;
-    } catch (error) {
-      setTaskError(errorMessage(error));
-      return false;
-    } finally {
-      setBusyTaskId(null);
-    }
+  function handleCreate(title) {
+    return dispatch(createTask(title));
   }
 
   function handleComplete(id) {
-    return updateOneTask(id, () => completeTaskRequest(id, idToken));
+    return dispatch(completeTask(id));
   }
 
   function handleRename(id, title) {
-    return updateOneTask(id, () => renameTaskRequest(id, title, idToken));
+    return dispatch(renameTask(id, title));
   }
 
-  async function handleDelete(id) {
-    setBusyTaskId(id);
-    setTaskError('');
-
-    try {
-      await deleteTaskRequest(id, idToken);
-      setTasks(current => current.filter(task => task.id !== id));
-      return true;
-    } catch (error) {
-      setTaskError(errorMessage(error));
-      return false;
-    } finally {
-      setBusyTaskId(null);
-    }
+  function handleDelete(id) {
+    return dispatch(deleteTask(id));
   }
 
   if (!session) {
@@ -161,8 +106,6 @@ export default function App() {
     );
   }
 
-  const pendingCount = tasks.filter(task => !task.completed_at).length;
-
   return (
     <main className="app-shell">
       <AppHeader
@@ -176,7 +119,6 @@ export default function App() {
 
         <TaskForm isSubmitting={isCreating} onCreate={handleCreate} />
 
-        {creationError && <p className="message error" role="alert">{creationError}</p>}
         {taskError && <p className="message error" role="alert">{taskError}</p>}
 
         {isLoadingTasks ? (

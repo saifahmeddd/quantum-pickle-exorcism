@@ -1,7 +1,9 @@
-import { useTheme } from '../context/ThemeContext.jsx';
+import { useDispatch, useSelector } from 'react-redux';
+import { selectTheme, themeToggled } from '../features/ui/uiSlice.js';
 
 export default function AppHeader({ email, pendingCount, onLogout }) {
-  const { theme, toggleTheme } = useTheme();
+  const dispatch = useDispatch();
+  const theme = useSelector(selectTheme);
 
   return (
     <header className="app-header">
@@ -13,7 +15,7 @@ export default function AppHeader({ email, pendingCount, onLogout }) {
         </p>
       </div>
       <div className="header-actions">
-        <button className="secondary" onClick={toggleTheme}>
+        <button className="secondary" onClick={() => dispatch(themeToggled())}>
           {theme === 'light' ? 'Dark mode' : 'Light mode'}
         </button>
         <button className="secondary" onClick={onLogout}>Log out</button>

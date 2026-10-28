@@ -308,8 +308,7 @@ p {
   border: 0;
 }
 
-/* ThemeContext places data-theme on the root HTML element. These overrides
-   demonstrate one shared context value changing styles across the whole page. */
+/* Redux theme state is mirrored to data-theme on the root HTML element. */
 :root[data-theme="dark"] {
   color: #eef2ff;
   background: #111827;
