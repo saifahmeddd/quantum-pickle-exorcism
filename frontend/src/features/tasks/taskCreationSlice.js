@@ -1,7 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { ApiError, createTask as createTaskRequest } from '../../api/client.js';
 
-// Redux owns only the state needed by the create-task request.
 const initialState = {
   isCreating: false,
   error: '',
@@ -15,10 +14,6 @@ function errorMessage(error) {
   return error.message || 'Something went wrong.';
 }
 
-/**
- * This slice demonstrates Redux state, reducer functions, and generated action
- * creators without moving the entire task screen into Redux.
- */
 const taskCreationSlice = createSlice({
   name: 'taskCreation',
   initialState,
@@ -40,7 +35,6 @@ const taskCreationSlice = createSlice({
   },
 });
 
-// createSlice generates these action creators from the reducer names above.
 export const {
   taskCreationStarted,
   taskCreationSucceeded,
@@ -48,11 +42,6 @@ export const {
   taskCreationReset,
 } = taskCreationSlice.actions;
 
-/**
- * Dispatch can send this function because configureStore includes thunk
- * middleware. The thunk reads the auth token, calls the API, and dispatches
- * normal actions that the reducers understand.
- */
 export function createTask(title) {
   return async (dispatch, getState) => {
     dispatch(taskCreationStarted());
@@ -62,7 +51,7 @@ export function createTask(title) {
       const task = await createTaskRequest(title, token);
       dispatch(taskCreationSucceeded());
 
-      // App keeps the task list in local React state, so return the new task.
+      // App owns the task list, so return the created task to it.
       return task;
     } catch (error) {
       dispatch(taskCreationFailed(errorMessage(error)));
@@ -71,7 +60,6 @@ export function createTask(title) {
   };
 }
 
-// Selectors hide the store's shape from components.
 export const selectIsCreating = state => state.taskCreation.isCreating;
 export const selectTaskCreationError = state => state.taskCreation.error;
 

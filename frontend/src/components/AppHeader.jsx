@@ -1,10 +1,5 @@
 import { useTheme } from '../context/ThemeContext.jsx';
 
-/**
- * AppHeader reads the shared theme through context. Clicking the theme button
- * updates ThemeProvider, so every component using that context receives the
- * new value without theme props being passed through the component tree.
- */
 export default function AppHeader({ email, pendingCount, onLogout }) {
   const { theme, toggleTheme } = useTheme();
 

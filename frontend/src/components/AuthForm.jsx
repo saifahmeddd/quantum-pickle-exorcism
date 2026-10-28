@@ -1,32 +1,13 @@
 import { useState } from 'react';
 
-/**
- * AuthForm displays both registration and login using one reusable form.
- *
- * Props received from App:
- * - mode decides which labels and submit action the user sees;
- * - isSubmitting disables repeated submissions while the request is running;
- * - error displays a safe error returned by App;
- * - onSubmit sends the entered credentials upward;
- * - onModeChange asks App to switch between login and registration.
- *
- * Email and password are local state because only this form needs the values
- * while the user is typing. This component never calls Firebase or fetch
- * directly; App receives the values and delegates the request to the API client.
- */
 export default function AuthForm({ mode, isSubmitting, error, onSubmit, onModeChange }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // This is a derived value calculated from props, so it does not need state.
   const isRegistering = mode === 'register';
 
   async function handleSubmit(event) {
-    // Prevent the browser's default form navigation so React stays in control.
     event.preventDefault();
-
-    // Props move the user action upward. App performs the API request because
-    // App owns the session that will be created by a successful response.
     await onSubmit({ email: email.trim(), password });
   }
 
@@ -43,7 +24,6 @@ export default function AuthForm({ mode, isSubmitting, error, onSubmit, onModeCh
       <form className="stack" onSubmit={handleSubmit}>
         <label>
           Email
-          {/* value + onChange make this a controlled React input. */}
           <input
             type="email"
             value={email}
@@ -55,7 +35,6 @@ export default function AuthForm({ mode, isSubmitting, error, onSubmit, onModeCh
 
         <label>
           Password
-          {/* Each keystroke updates local state and triggers a small re-render. */}
           <input
             type="password"
             value={password}
@@ -66,7 +45,6 @@ export default function AuthForm({ mode, isSubmitting, error, onSubmit, onModeCh
           />
         </label>
 
-        {/* Render the error element only when App supplies an error message. */}
         {error && <p className="message error" role="alert">{error}</p>}
 
         <button className="primary" disabled={isSubmitting}>

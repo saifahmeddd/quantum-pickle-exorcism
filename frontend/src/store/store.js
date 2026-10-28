@@ -2,16 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '../features/auth/authSlice.js';
 import taskCreationReducer from '../features/tasks/taskCreationSlice.js';
 
-/**
- * The store is the single container for shared Redux state.
- * Each key below owns one branch of that state and delegates updates to its
- * slice reducer.
- *
- * configureStore also adds Redux thunk middleware. Middleware runs between
- * dispatch and the reducers. Thunk middleware lets us dispatch an async
- * function for API work; that function later dispatches ordinary actions that
- * the reducers understand.
- */
+// configureStore combines the slices and includes thunk middleware.
 export const store = configureStore({
   reducer: {
     auth: authReducer,

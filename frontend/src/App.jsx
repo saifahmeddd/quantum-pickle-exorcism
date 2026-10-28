@@ -27,7 +27,6 @@ import AuthForm from './components/AuthForm.jsx';
 import TaskForm from './components/TaskForm.jsx';
 import TaskList from './components/TaskList.jsx';
 
-// Return a new array with pending tasks first, then order by time and ID.
 function orderTasks(tasks) {
   return [...tasks].sort((left, right) => {
     const completionDifference = Number(Boolean(left.completed_at)) - Number(Boolean(right.completed_at));
@@ -45,15 +44,10 @@ function errorMessage(error) {
   return error.message || 'Something went wrong.';
 }
 
-/**
- * Redux owns authentication and task creation. App keeps the task collection
- * and the other task requests in ordinary React state so both flows stay easy
- * to compare. ThemeProvider separately owns the visual theme through Context.
- */
 export default function App() {
   const dispatch = useDispatch();
 
-  // Redux selectors read the two flows intentionally managed by Redux.
+  // Redux owns authentication and task creation.
   const authMode = useSelector(selectAuthMode);
   const session = useSelector(selectSession);
   const isAuthenticating = useSelector(selectIsAuthenticating);
@@ -61,7 +55,7 @@ export default function App() {
   const isCreating = useSelector(selectIsCreating);
   const creationError = useSelector(selectTaskCreationError);
 
-  // The remaining task screen uses the original local React state approach.
+  // The task list and remaining requests use local React state.
   const [tasks, setTasks] = useState([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
   const [busyTaskId, setBusyTaskId] = useState(null);
@@ -69,7 +63,6 @@ export default function App() {
 
   const idToken = session?.id_token;
 
-  // Loading the list is a normal React Effect, not a Redux request.
   useEffect(() => {
     if (!idToken) return undefined;
 
@@ -90,7 +83,6 @@ export default function App() {
   }, [idToken]);
 
   function handleAuthentication(credentials) {
-    // Authentication is the first Redux thunk flow.
     return dispatch(authenticate(credentials));
   }
 
@@ -106,8 +98,6 @@ export default function App() {
   }
 
   async function handleCreate(title) {
-    // Task creation is the second Redux thunk flow. The thunk returns the task,
-    // then App adds it to the local task collection used by the other requests.
     const task = await dispatch(createTask(title));
     if (task === null) return false;
 
@@ -115,7 +105,6 @@ export default function App() {
     return true;
   }
 
-  // Complete and rename use the original React request/state-update flow.
   async function updateOneTask(id, request) {
     setBusyTaskId(id);
     setTaskError('');
@@ -172,7 +161,6 @@ export default function App() {
     );
   }
 
-  // This is calculated from local tasks, so it does not need separate state.
   const pendingCount = tasks.filter(task => !task.completed_at).length;
 
   return (
