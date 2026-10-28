@@ -57,10 +57,9 @@ export default function App() {
   useEffect(() => {
     if (!idToken) return undefined;
 
-    const controller = new AbortController();
-    dispatch(loadTasks(controller.signal));
+    const request = dispatch(loadTasks());
 
-    return () => controller.abort();
+    return () => request.abort();
   }, [dispatch, idToken]);
 
   function handleAuthentication(credentials) {
@@ -76,20 +75,29 @@ export default function App() {
     dispatch(tasksCleared());
   }
 
+  async function runTaskAction(action) {
+    try {
+      await dispatch(action).unwrap();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function handleCreate(title) {
-    return dispatch(createTask(title));
+    return runTaskAction(createTask(title));
   }
 
   function handleComplete(id) {
-    return dispatch(completeTask(id));
+    return runTaskAction(completeTask(id));
   }
 
   function handleRename(id, title) {
-    return dispatch(renameTask(id, title));
+    return runTaskAction(renameTask({ id, title }));
   }
 
   function handleDelete(id) {
-    return dispatch(deleteTask(id));
+    return runTaskAction(deleteTask(id));
   }
 
   if (!session) {

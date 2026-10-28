@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import {
   ApiError,
   completeTask as completeTaskRequest,
@@ -33,139 +33,144 @@ function errorMessage(error) {
   return error.message || 'Something went wrong.';
 }
 
+export const loadTasks = createAsyncThunk(
+  'tasks/loadTasks',
+  async (_, { getState, rejectWithValue, signal }) => {
+    try {
+      const token = getState().auth.session.id_token;
+      const data = await listTasks(token, signal);
+      return data.tasks;
+    } catch (error) {
+      if (error.name === 'AbortError') throw error;
+      return rejectWithValue(errorMessage(error));
+    }
+  },
+);
+
+export const createTask = createAsyncThunk(
+  'tasks/createTask',
+  async (title, { getState, rejectWithValue }) => {
+    try {
+      const token = getState().auth.session.id_token;
+      return await createTaskRequest(title, token);
+    } catch (error) {
+      return rejectWithValue(errorMessage(error));
+    }
+  },
+);
+
+export const completeTask = createAsyncThunk(
+  'tasks/completeTask',
+  async (id, { getState, rejectWithValue }) => {
+    try {
+      return await completeTaskRequest(id, getState().auth.session.id_token);
+    } catch (error) {
+      return rejectWithValue(errorMessage(error));
+    }
+  },
+);
+
+export const renameTask = createAsyncThunk(
+  'tasks/renameTask',
+  async ({ id, title }, { getState, rejectWithValue }) => {
+    try {
+      return await renameTaskRequest(id, title, getState().auth.session.id_token);
+    } catch (error) {
+      return rejectWithValue(errorMessage(error));
+    }
+  },
+);
+
+export const deleteTask = createAsyncThunk(
+  'tasks/deleteTask',
+  async (id, { getState, rejectWithValue }) => {
+    try {
+      await deleteTaskRequest(id, getState().auth.session.id_token);
+      return id;
+    } catch (error) {
+      return rejectWithValue(errorMessage(error));
+    }
+  },
+);
+
+function replaceTask(state, updatedTask) {
+  state.items = orderTasks(
+    state.items.map(task => task.id === updatedTask.id ? updatedTask : task),
+  );
+}
+
+function taskUpdateRejected(state, action) {
+  state.busyTaskId = null;
+  state.error = action.payload || action.error.message;
+}
+
 const tasksSlice = createSlice({
   name: 'tasks',
   initialState,
   reducers: {
-    tasksLoadingStarted(state) {
-      state.isLoading = true;
-      state.error = '';
-    },
-    tasksLoaded(state, action) {
-      state.isLoading = false;
-      state.items = orderTasks(action.payload);
-    },
-    taskCreationStarted(state) {
-      state.isCreating = true;
-      state.error = '';
-    },
-    taskCreated(state, action) {
-      state.isCreating = false;
-      state.items = orderTasks([...state.items, action.payload]);
-    },
-    taskUpdateStarted(state, action) {
-      state.busyTaskId = action.payload;
-      state.error = '';
-    },
-    taskUpdated(state, action) {
-      state.busyTaskId = null;
-      state.items = orderTasks(
-        state.items.map(task => task.id === action.payload.id ? action.payload : task),
-      );
-    },
-    taskDeleted(state, action) {
-      state.busyTaskId = null;
-      state.items = state.items.filter(task => task.id !== action.payload);
-    },
-    taskRequestFailed(state, action) {
-      state.isLoading = false;
-      state.isCreating = false;
-      state.busyTaskId = null;
-      state.error = action.payload;
-    },
     tasksCleared() {
       return initialState;
     },
   },
+  extraReducers: builder => {
+    builder
+      .addCase(loadTasks.pending, state => {
+        state.isLoading = true;
+        state.error = '';
+      })
+      .addCase(loadTasks.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.items = orderTasks(action.payload);
+      })
+      .addCase(loadTasks.rejected, (state, action) => {
+        state.isLoading = false;
+        if (!action.meta.aborted) {
+          state.error = action.payload || action.error.message;
+        }
+      })
+      .addCase(createTask.pending, state => {
+        state.isCreating = true;
+        state.error = '';
+      })
+      .addCase(createTask.fulfilled, (state, action) => {
+        state.isCreating = false;
+        state.items = orderTasks([...state.items, action.payload]);
+      })
+      .addCase(createTask.rejected, (state, action) => {
+        state.isCreating = false;
+        state.error = action.payload || action.error.message;
+      })
+      .addCase(completeTask.pending, (state, action) => {
+        state.busyTaskId = action.meta.arg;
+        state.error = '';
+      })
+      .addCase(completeTask.fulfilled, (state, action) => {
+        state.busyTaskId = null;
+        replaceTask(state, action.payload);
+      })
+      .addCase(completeTask.rejected, taskUpdateRejected)
+      .addCase(renameTask.pending, (state, action) => {
+        state.busyTaskId = action.meta.arg.id;
+        state.error = '';
+      })
+      .addCase(renameTask.fulfilled, (state, action) => {
+        state.busyTaskId = null;
+        replaceTask(state, action.payload);
+      })
+      .addCase(renameTask.rejected, taskUpdateRejected)
+      .addCase(deleteTask.pending, (state, action) => {
+        state.busyTaskId = action.meta.arg;
+        state.error = '';
+      })
+      .addCase(deleteTask.fulfilled, (state, action) => {
+        state.busyTaskId = null;
+        state.items = state.items.filter(task => task.id !== action.payload);
+      })
+      .addCase(deleteTask.rejected, taskUpdateRejected);
+  },
 });
 
-export const {
-  tasksLoadingStarted,
-  tasksLoaded,
-  taskCreationStarted,
-  taskCreated,
-  taskUpdateStarted,
-  taskUpdated,
-  taskDeleted,
-  taskRequestFailed,
-  tasksCleared,
-} = tasksSlice.actions;
-
-export function loadTasks(signal) {
-  return async (dispatch, getState) => {
-    dispatch(tasksLoadingStarted());
-
-    try {
-      const token = getState().auth.session.id_token;
-      const data = await listTasks(token, signal);
-      dispatch(tasksLoaded(data.tasks));
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        dispatch(taskRequestFailed(errorMessage(error)));
-      }
-    }
-  };
-}
-
-export function createTask(title) {
-  return async (dispatch, getState) => {
-    dispatch(taskCreationStarted());
-
-    try {
-      const token = getState().auth.session.id_token;
-      const task = await createTaskRequest(title, token);
-      dispatch(taskCreated(task));
-      return true;
-    } catch (error) {
-      dispatch(taskRequestFailed(errorMessage(error)));
-      return false;
-    }
-  };
-}
-
-async function updateOneTask(dispatch, request, id) {
-  dispatch(taskUpdateStarted(id));
-
-  try {
-    const task = await request();
-    dispatch(taskUpdated(task));
-    return true;
-  } catch (error) {
-    dispatch(taskRequestFailed(errorMessage(error)));
-    return false;
-  }
-}
-
-export function completeTask(id) {
-  return (dispatch, getState) => updateOneTask(
-    dispatch,
-    () => completeTaskRequest(id, getState().auth.session.id_token),
-    id,
-  );
-}
-
-export function renameTask(id, title) {
-  return (dispatch, getState) => updateOneTask(
-    dispatch,
-    () => renameTaskRequest(id, title, getState().auth.session.id_token),
-    id,
-  );
-}
-
-export function deleteTask(id) {
-  return async (dispatch, getState) => {
-    dispatch(taskUpdateStarted(id));
-
-    try {
-      await deleteTaskRequest(id, getState().auth.session.id_token);
-      dispatch(taskDeleted(id));
-      return true;
-    } catch (error) {
-      dispatch(taskRequestFailed(errorMessage(error)));
-      return false;
-    }
-  };
-}
+export const { tasksCleared } = tasksSlice.actions;
 
 export const selectTasks = state => state.tasks.items;
 export const selectIsLoadingTasks = state => state.tasks.isLoading;
