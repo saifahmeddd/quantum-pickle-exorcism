@@ -17,6 +17,7 @@ const initialState = {
 };
 
 function orderTasks(tasks) {
+  // Copy before sorting so the original Redux array is never mutated.
   return [...tasks].sort((left, right) => {
     const completionDifference = Number(Boolean(left.completed_at)) - Number(Boolean(right.completed_at));
     if (completionDifference !== 0) return completionDifference;
@@ -41,6 +42,7 @@ export const loadTasks = createAsyncThunk(
       const data = await listTasks(token, signal);
       return data.tasks;
     } catch (error) {
+      // Let createAsyncThunk recognize cancellations instead of treating them as API errors.
       if (error.name === 'AbortError') throw error;
       return rejectWithValue(errorMessage(error));
     }
@@ -104,6 +106,7 @@ function taskUpdateRejected(state, action) {
   state.error = action.payload || action.error.message;
 }
 
+// Redux Toolkit uses Immer so these reducer mutations still produce immutable state.
 const tasksSlice = createSlice({
   name: 'tasks',
   initialState,
@@ -124,6 +127,7 @@ const tasksSlice = createSlice({
       })
       .addCase(loadTasks.rejected, (state, action) => {
         state.isLoading = false;
+        // Intentional effect cleanup should stop loading without showing an error.
         if (!action.meta.aborted) {
           state.error = action.payload || action.error.message;
         }
@@ -140,6 +144,7 @@ const tasksSlice = createSlice({
         state.isCreating = false;
         state.error = action.payload || action.error.message;
       })
+      // meta.arg contains the original thunk input used to identify the busy task.
       .addCase(completeTask.pending, (state, action) => {
         state.busyTaskId = action.meta.arg;
         state.error = '';

@@ -16,10 +16,12 @@ function errorMessage(error) {
   return error.message || 'Something went wrong.';
 }
 
+// createAsyncThunk runs the request and generates pending, fulfilled, and rejected actions.
 export const authenticate = createAsyncThunk(
   'auth/authenticate',
   async (credentials, { getState, rejectWithValue }) => {
     try {
+      // getState reads the latest mode without passing it through React props.
       const mode = getState().auth.mode;
       const request = mode === 'register' ? register : login;
       const session = await request(credentials);
@@ -29,11 +31,13 @@ export const authenticate = createAsyncThunk(
         id_token: session.id_token,
       };
     } catch (error) {
+      // rejectWithValue places a readable API error in the rejected action payload.
       return rejectWithValue(errorMessage(error));
     }
   },
 );
 
+// createSlice groups auth state and reducers while generating matching action creators.
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -47,6 +51,7 @@ const authSlice = createSlice({
       state.error = '';
     },
   },
+  // extraReducers handles lifecycle actions created outside the slice's normal reducers.
   extraReducers: builder => {
     builder
       .addCase(authenticate.pending, state => {
@@ -69,6 +74,7 @@ export const {
   loggedOut,
 } = authSlice.actions;
 
+// Selectors provide focused reads from the combined Redux state.
 export const selectAuthMode = state => state.auth.mode;
 export const selectSession = state => state.auth.session;
 export const selectIsAuthenticating = state => state.auth.isSubmitting;

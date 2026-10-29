@@ -10,6 +10,7 @@ export default function TaskList({ tasks, busyTaskId, onComplete, onRename, onDe
     );
   }
 
+  // Stable task IDs let React preserve each TaskItem across list re-renders.
   return (
     <ul className="task-list">
       {tasks.map(task => (

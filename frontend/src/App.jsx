@@ -30,8 +30,10 @@ import TaskForm from './components/TaskForm.jsx';
 import TaskList from './components/TaskList.jsx';
 
 export default function App() {
+  // redux's dispatch function to dispatch actions to the store
   const dispatch = useDispatch();
 
+  // subscription for all the required state values from the store
   const authMode = useSelector(selectAuthMode);
   const session = useSelector(selectSession);
   const isAuthenticating = useSelector(selectIsAuthenticating);
@@ -44,8 +46,10 @@ export default function App() {
   const pendingCount = useSelector(selectPendingCount);
   const theme = useSelector(selectTheme);
 
+  // javascript's optional chaining
   const idToken = session?.id_token;
 
+  // side effect to set the theme on the document element
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
 
@@ -54,6 +58,7 @@ export default function App() {
     };
   }, [theme]);
 
+  // Reload tasks for a new session and cancel the request during effect cleanup.
   useEffect(() => {
     if (!idToken) return undefined;
 
@@ -75,6 +80,7 @@ export default function App() {
     dispatch(tasksCleared());
   }
 
+  // unwrap turns the dispatched thunk result into normal Promise success or failure.
   async function runTaskAction(action) {
     try {
       await dispatch(action).unwrap();

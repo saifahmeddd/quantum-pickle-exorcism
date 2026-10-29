@@ -3,6 +3,7 @@ import authReducer from '../features/auth/authSlice.js';
 import tasksReducer from '../features/tasks/tasksSlice.js';
 import uiReducer from '../features/ui/uiSlice.js';
 
+// Hide the submitted password from Redux DevTools without storing a modified action.
 function sanitizeAction(action) {
   if (!action.type.startsWith('auth/authenticate/') || !action.meta?.arg) {
     return action;

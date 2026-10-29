@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 export default function TaskForm({ isSubmitting, onCreate }) {
+  // Keep unfinished input local because no other component needs this draft value.
   const [title, setTitle] = useState('');
 
   async function handleSubmit(event) {
@@ -9,6 +10,7 @@ export default function TaskForm({ isSubmitting, onCreate }) {
 
     if (!cleanTitle) return;
 
+    // Wait for Redux to confirm success before clearing what the user typed.
     const created = await onCreate(cleanTitle);
     if (created) setTitle('');
   }

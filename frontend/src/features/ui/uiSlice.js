@@ -6,6 +6,7 @@ const uiSlice = createSlice({
     theme: 'light',
   },
   reducers: {
+    // This synchronous update needs no thunk because it performs no async work.
     themeToggled(state) {
       state.theme = state.theme === 'light' ? 'dark' : 'light';
     },

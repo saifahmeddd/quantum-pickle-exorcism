@@ -36,6 +36,7 @@ async function request(path, { method = 'GET', token, body, signal } = {}) {
     );
   }
 
+  // Empty or non-JSON responses become an empty object instead of failing during parsing.
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {

@@ -5,6 +5,7 @@ import App from './App.jsx';
 import { store } from './store/store.js';
 import './styles.css';
 
+// Provider exposes the Redux store to useDispatch and useSelector throughout the app.
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <Provider store={store}>
