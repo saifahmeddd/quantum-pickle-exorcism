@@ -69,10 +69,7 @@ const authSlice = createSlice({
   },
 });
 
-export const {
-  modeChanged,
-  loggedOut,
-} = authSlice.actions;
+export const { modeChanged, loggedOut } = authSlice.actions;
 
 // Selectors provide focused reads from the combined Redux state.
 export const selectAuthMode = state => state.auth.mode;

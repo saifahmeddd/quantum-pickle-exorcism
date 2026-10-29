@@ -6,9 +6,9 @@ export default function AuthForm({ mode, isSubmitting, error, onSubmit, onModeCh
 
   const isRegistering = mode === 'register';
 
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault();
-    await onSubmit({ email: email.trim(), password });
+    onSubmit({ email: email.trim(), password });
   }
 
   return (

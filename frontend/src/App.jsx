@@ -60,20 +60,15 @@ export default function App() {
 
   // Reload tasks for a new session and cancel the request during effect cleanup.
   useEffect(() => {
-    if (!idToken) return undefined;
+    if (!idToken) return;
 
     const request = dispatch(loadTasks());
 
     return () => request.abort();
   }, [dispatch, idToken]);
 
-  function handleAuthentication(credentials) {
-    return dispatch(authenticate(credentials));
-  }
-
-  function handleModeChange(mode) {
-    dispatch(modeChanged(mode));
-  }
+  const handleAuthentication = credentials => dispatch(authenticate(credentials));
+  const handleModeChange = mode => dispatch(modeChanged(mode));
 
   function handleLogout() {
     dispatch(loggedOut());
@@ -90,21 +85,10 @@ export default function App() {
     }
   }
 
-  function handleCreate(title) {
-    return runTaskAction(createTask(title));
-  }
-
-  function handleComplete(id) {
-    return runTaskAction(completeTask(id));
-  }
-
-  function handleRename(id, title) {
-    return runTaskAction(renameTask({ id, title }));
-  }
-
-  function handleDelete(id) {
-    return runTaskAction(deleteTask(id));
-  }
+  const handleCreate = title => runTaskAction(createTask(title));
+  const handleComplete = id => runTaskAction(completeTask(id));
+  const handleRename = (id, title) => runTaskAction(renameTask({ id, title }));
+  const handleDelete = id => runTaskAction(deleteTask(id));
 
   if (!session) {
     return (
